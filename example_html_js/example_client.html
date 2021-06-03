@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title> Test </title>
+</head>
+<body>
+<script src="jquery-3.6.0.min.js"></script>
+<textarea id="txt" style="resize:none;width:600px;height:200px;"></textarea>
+<input type="button" value="???" name="btn" onclick="test_ajax();" />
+<script language="javascript">
+    function c1()
+    {
+        var t=document.getElementById("txt");
+        t.value="initial"
+        console.log("Initial");
+    }
+    function handle() {
+        console.log("New:"+document.getElementById('txt').value);
+    }
+    console.log(3);
+    document.getElementById('txt').addEventListener("input", handle, false);
+
+    function test_ajax(){
+        jQuery.support.cors = true;
+        $.ajax({
+            type: "get",
+            url: "http://localhost:8080/?name="+document.getElementById('txt').value,
+            //headers: { 'Access-Control-Allow-Origin': 'localhost' },
+            data: {},
+            success: function (data, status) {
+                if (status == "success") {
+                    //alert("ok");
+                    console.log(data);
+                    document.getElementById('txt').value = "Sever return: "+data;
+                }
+            },
+            error: function (e) {
+                alert("error");
+            },
+            complete: function () {
+
+            }
+        });
+    }
+</script>
+</body>
+</html>

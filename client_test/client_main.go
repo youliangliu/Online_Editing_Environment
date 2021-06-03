@@ -12,7 +12,7 @@ func main() {
 		log.Fatalln("dailing error: ", err)
 	}
 
-	res := 14
+	res:=14
 	err = conn.Call("HandleSet.Test", 12, &res)
 	if err != nil {
 		log.Fatalln("error: ", err)
