@@ -1,6 +1,9 @@
-package crdt
+package server
 
-import "fmt"
+import (
+	"fmt"
+	"net/rpc"
+)
 
 type clock struct {
 	pos int
@@ -14,11 +17,33 @@ type crdt struct {
 	operation bool
 }
 
-type text struct {
-	crdts []crdt
+type Server struct {
+	crdts    []crdt
+	backends []string
+	index    int
 }
 
-func (self *text) PutCommand(command crdt) error {
+func (self *Server) Broadcast(command crdt, ret *bool) error {
+	self.PutCommand(command, ret)
+	for i := 0; i < len(self.backends); i++ {
+		if i != self.index {
+			conn, e := rpc.DialHTTP("tcp", self.backends[i])
+			if e != nil {
+				continue
+			}
+
+			// perform the call
+			e = conn.Call("Server.PutCommand", command, ret)
+			if e != nil {
+				conn.Close()
+				continue
+			}
+		}
+	}
+	return nil
+}
+
+func (self *Server) PutCommand(command crdt, ret *bool) error {
 	if command.operation == true {
 		flag := true
 		for i := 0; i < len(self.crdts); i++ {
@@ -84,7 +109,7 @@ func (self *text) PutCommand(command crdt) error {
 	return nil
 }
 
-func (self *text) show() error {
+func (self *Server) show() error {
 	result := ""
 	for i := 0; i < len(self.crdts); i++ {
 		if self.crdts[i].operation {
