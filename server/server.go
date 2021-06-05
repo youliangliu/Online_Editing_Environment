@@ -43,7 +43,7 @@ func (self *Server) Broadcast(command crdt, ret *bool) error {
 	return nil
 }
 
-func (self *Server) PutCommand(command crdt, ret *bool) error {
+func (self *text) PutCommand(command crdt, ret *bool) error {
 	if command.operation == true {
 		flag := true
 		for i := 0; i < len(self.crdts); i++ {
@@ -55,7 +55,8 @@ func (self *Server) PutCommand(command crdt, ret *bool) error {
 				}
 				if command.timestamp < self.crdts[i].timestamp {
 					first := self.crdts[:i]
-					last := self.crdts[i:]
+					last := []crdt{}
+					last = append(last, self.crdts[i:]...)
 					self.crdts = append(first, command)
 					self.crdts = append(self.crdts, last...)
 					flag = false
@@ -63,7 +64,8 @@ func (self *Server) PutCommand(command crdt, ret *bool) error {
 				}
 			} else if result > 0 {
 				first := self.crdts[:i]
-				last := self.crdts[i:]
+				last := []crdt{}
+				last = append(last, self.crdts[i:]...)
 				self.crdts = append(first, command)
 				self.crdts = append(self.crdts, last...)
 				flag = false
@@ -72,6 +74,7 @@ func (self *Server) PutCommand(command crdt, ret *bool) error {
 		}
 		if flag {
 			self.crdts = append(self.crdts, command)
+			//fmt.Println(self.crdts)
 		}
 	} else {
 		flag := true
@@ -85,7 +88,8 @@ func (self *Server) PutCommand(command crdt, ret *bool) error {
 				}
 				if command.timestamp < self.crdts[i].timestamp {
 					first := self.crdts[:i]
-					last := self.crdts[i:]
+					last := []crdt{}
+					last = append(last, self.crdts[i:]...)
 					self.crdts = append(first, command)
 					self.crdts = append(self.crdts, last...)
 					flag = false
@@ -94,7 +98,8 @@ func (self *Server) PutCommand(command crdt, ret *bool) error {
 				}
 			} else if result > 0 {
 				first := self.crdts[:i]
-				last := self.crdts[i:]
+				last := []crdt{}
+				last = append(last, self.crdts[i:]...)
 				self.crdts = append(first, command)
 				self.crdts = append(self.crdts, last...)
 				flag = false

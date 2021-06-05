@@ -141,6 +141,27 @@ func (self *text) show() error {
 	return nil
 }
 
+func generate_crdt(crdts []crdt) []crdt {
+	for i := 0; i < len(crdts); i++ {
+		if crdts[i].operation == false {
+			crdts = append(crdts[:i], crdts[i+1:]...)
+			i--
+		}
+	}
+	return crdts
+}
+
+func show_all_crdt(crdts []crdt) {
+	for i := 0; i < len(crdts); i++ {
+		fmt.Println(crdts[i])
+	}
+}
+
+func test(a clock) int {
+	a.pos = a.pos + 1
+	return a.pos
+}
+
 func main() {
 	var a1 clock
 	var a2 clock
@@ -222,7 +243,13 @@ func main() {
 	atext.PutCommand(c4)
 	atext.PutCommand(c6)
 
-	atext.show()
+	// atext.show()
+	var test_text text
+	test_text.crdts = generate_crdt(atext.crdts)
+	show_all_crdt(test_text.crdts)
+
+	var testClock clock
+	testClock.pos = 1
 
 	//fmt.Println(crdt_compare(c6, c4))
 

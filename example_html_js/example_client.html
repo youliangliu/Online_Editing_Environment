@@ -7,42 +7,209 @@
 <body>
 <script src="jquery-3.6.0.min.js"></script>
 <textarea id="txt" style="resize:none;width:600px;height:200px;"></textarea>
-<input type="button" value="???" name="btn" onclick="test_ajax();" />
+<input type="button" value="???" name="btn" onclick="check_send_diff()" />
 <script language="javascript">
-    function c1()
-    {
-        var t=document.getElementById("txt");
-        t.value="initial"
-        console.log("Initial");
-    }
-    function handle() {
-        console.log("New:"+document.getElementById('txt').value);
-    }
-    console.log(3);
-    document.getElementById('txt').addEventListener("input", handle, false);
+    var version = 0;
+    // function c1()
+    // {
+    //     var t=document.getElementById("txt");
+    //     t.value="initial"
+    //     console.log("Initial");
+    // }
+    // function handle() {
+    //     console.log("New:"+document.getElementById('txt').value);
+    // }
+    // console.log(3);
+    // document.getElementById('txt').addEventListener("input", handle, false);
 
-    function test_ajax(){
-        jQuery.support.cors = true;
-        $.ajax({
-            type: "get",
-            url: "http://localhost:8080/?name="+document.getElementById('txt').value,
-            //headers: { 'Access-Control-Allow-Origin': 'localhost' },
-            data: {},
-            success: function (data, status) {
-                if (status == "success") {
-                    //alert("ok");
-                    console.log(data);
-                    document.getElementById('txt').value = "Sever return: "+data;
+
+    var lock_http = false;
+    // function test_ajax(){
+    //     jQuery.support.cors = true;
+    //     $.ajax({
+    //         type: "get",
+    //         url: "http://localhost:8080/?name="+document.getElementById('txt').value,
+    //         //headers: { 'Access-Control-Allow-Origin': 'localhost' },
+    //         data: {},
+    //         success: function (data, status) {
+    //             if (status == "success") {
+    //                 //alert("ok");
+    //                 console.log(data);
+    //                 document.getElementById('txt').value = "Sever return: "+data;
+    //             }
+    //         },
+    //         error: function (e) {
+    //             alert("error");
+    //         },
+    //         complete: function () {
+    //
+    //         }
+    //     });
+    // }
+
+    function check_send_diff(){
+        version = version+1;
+        console.log("diff")
+        if (lock_http == false) {
+            //console.log("?")
+            lock_http = true;
+            jQuery.support.cors = true;
+            $.ajax({
+                type: "get",
+                url: "http://localhost:8080/?content=" + document.getElementById('txt').value,
+                data: {},
+                success: function (data, status) {
+                    if (status == "success") {
+                        //alert("ok");
+                        console.log("receive")
+                        lock_http = false;
+                        document.getElementById('txt').value = data;
+                    }
+                },
+                error: function (e) {
+                    console.log("Send failure!");
+                },
+                complete: function () {
+
                 }
-            },
-            error: function (e) {
-                alert("error");
-            },
-            complete: function () {
-
-            }
-        });
+            });
+        }
     }
+
+    document.getElementById('txt').addEventListener("input", check_send_diff, false);
+    //setInterval(check_send_diff, 100)
+
+
+    function generate_time(){
+        var today = new Date();
+        var date = today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate();
+        var time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
+        var dateTime = date+' '+time;
+        return dateTime
+    }
+
+    function show(crdts){
+        for (var i=0; i<crdts.length; i++){
+            console.log(crdts[i].value);
+        }
+    }
+
+    function clock_compare(c1, c2){
+        if (c1.pos < c2.pos) {
+		    return -1
+	    }    
+        else if (c1.pos > c2.pos) {
+		    return 1
+	    } 
+        else {
+		    if (c1.IP < c2.IP) {
+			    return -1
+		    } 
+            else if (c1.IP > c2.IP) {
+			    return 1
+		    } else {
+			    return 0
+		    }
+	    }
+    }
+
+    //prev and next are all clock array
+    function generate_id_middle(prev, next, IP){
+        var length = Math.min(prev.length, next.length)
+        var pos = -1
+        for (var i=0; i<length-1; i++){
+            if (clock_compare(prev[i], next[i]) != 0){
+                pos = i
+                break
+            }
+        }
+        if(pos == -1){
+            var id = prev.slice()
+            var clock = {pos:next[pos+1].pos-1, IP:IP}
+            id.push(clock)
+            return id
+        }
+        //Position is the last position
+        else if (pos == prev.length-1){
+            var id = prev.slice()
+            var clock = {pos:0, IP:IP}
+            id.push(clock)
+            return id
+        }
+        //Position in the middle
+        else{
+            var id = prev.slice(0, pos+1)
+            var clock = {pos:prev[pos+1].pos+1, IP:IP}
+            id.push(clock)
+            return id
+        }
+    }
+
+    function generate_crdt(input, crdts, IP){
+        var crdts_temp = crdts.slice()
+        for (var i=0; i<crdts_temp.length; i++){
+            var crdt = crdts_temp[i];
+            if (crdt.operation == false){
+                crdts_temp.splice(i, 1)
+                i--
+            }
+        }
+        //Insertion flag
+        var flag = input.length > crdts_temp.length
+        var minLength = Math.min(input.length, crdts_temp.length)
+        var pos = -1
+        for (var i=0; i<minLength; i++){
+            if (input[i] != crdts_temp[i].value){
+                pos = i
+                break
+            }
+        }
+        if (pos == -1){
+            pos = Math.max(input.length, crdts_temp.length) - 1
+        }
+
+        //Insertion
+        if (flag){
+            var value = input[pos]
+            //Insert at the begining
+            if(pos == 0){
+                var clock = {pos:crdts_temp[pos].id[0].pos - 1, IP:IP}
+                var crdt = {value:value, id:clock, timestamp:generate_time(), operation:flag}
+                return crdt
+            }
+            //Insert at the end
+            else if (pos == input.length - 1){
+                var clock = {pos:crdts_temp[pos-1].id[0].pos + 1, IP:IP}
+                var crdt = {value:value, id:clock, timestamp:generate_time(), operation:flag}
+                return crdt
+            }
+            //Insert in the middle
+            else{
+                var id = generate_id_middle(crdts_temp[pos-1].id, crdts_temp[pos].id)
+                var crdt = {value:value, id:id, timestamp:generate_time(), operation:flag}
+            }
+        }
+
+        
+    }
+    
+    var c1 = {pos:1, IP:"A"}
+    var c2 = {pos:1, IP:"A"}
+    console.log("compared clock: ", clock_compare(c1, c2))
+    var clockArray = [c1, c2]
+    var crdt1 = {value:"a", id:clockArray, timestamp:"1", operation:false}
+    var crdt2 = {value:"b", id:clockArray, timestamp:"1", operation:true}
+    var arr = [crdt1, crdt2]
+
+    generate_crdt("1", arr)
+    show(arr)
+    
+    
 </script>
+
+
+
+<textarea id="txt2" style="resize:none;width:600px;height:200px;"></textarea>
+
 </body>
 </html>
