@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/rpc"
 )
@@ -191,6 +192,102 @@ func crdt_validation(command crdt, crdts []crdt) bool {
 	return true
 }
 
+func parseToCrdts(b []byte) []crdt {
+
+}
+
 func main() {
+	var a1 clock
+	var a2 clock
+	var a3 clock
+	var a4 clock
+	var a5 clock
+
+	a1.pos = 1
+	a1.IP = "A"
+	a2.pos = 2
+	a2.IP = "A"
+	a3.pos = 3
+	a3.IP = "A"
+	a4.pos = 4
+	a4.IP = "A"
+	a5.pos = 5
+	a5.IP = "A"
+
+	var b1 clock
+	var b2 clock
+
+	b1.pos = 1
+	b1.IP = "B"
+	b2.pos = 2
+	b2.IP = "B"
+
+	var c1, c2, c3, c4, c5, c6, c7, c8, c9 crdt
+	c1.id = []clock{}
+	c2.id = []clock{}
+	c3.id = []clock{}
+	c4.id = []clock{}
+	c5.id = []clock{}
+	c6.id = []clock{}
+	c7.id = []clock{}
+	c8.id = []clock{}
+	c9.id = []clock{}
+
+	c1.id = append(c1.id, a1)
+	c2.id = append(c2.id, a2)
+	c3.id = append(c3.id, a3)
+	c4.id = append(c4.id, a4)
+	c5.id = append(c5.id, a4)
+	c5.id = append(c5.id, b1)
+	c6.id = append(c6.id, a4)
+	c6.id = append(c6.id, b2)
+	c7.id = append(c7.id, a5)
+
+	c8.id = append(c8.id, a4)
+	c9.id = append(c9.id, a4)
+	c9.id = append(c9.id, b1)
+
+	c1.operation = true
+	c2.operation = true
+	c3.operation = true
+	c4.operation = true
+	c5.operation = true
+	c6.operation = true
+	c7.operation = true
+
+	c8.operation = false
+	c9.operation = false
+
+	c1.value = 'a'
+	c2.value = 'b'
+	c3.value = 'c'
+	c4.value = 'd'
+	c5.value = 'e'
+	c6.value = 'f'
+	c7.value = 'g'
+
+	var atext Server
+	ret := true
+	atext.PutCommand(c8, &ret)
+	atext.PutCommand(c1, &ret)
+	atext.PutCommand(c3, &ret)
+	atext.PutCommand(c5, &ret)
+	atext.PutCommand(c7, &ret)
+	atext.PutCommand(c9, &ret)
+	atext.PutCommand(c2, &ret)
+	atext.PutCommand(c4, &ret)
+	atext.PutCommand(c6, &ret)
+
+	atext.show()
+
+	//a, _ := json.Marshal(atext)
+	fmt.Println(atext)
+
+	b := []byte(`{"Name":"Wednesday","Age":6,"Parents":["Gomez","Morticia"]}`)
+	var f interface{}
+	json.Unmarshal(b, &f)
+	m := f.(map[string]interface{})
+
+	test := m["Age"]
 
 }
