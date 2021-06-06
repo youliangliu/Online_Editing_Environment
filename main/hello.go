@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type clock struct {
 	pos int
@@ -251,6 +253,7 @@ func main() {
 	var testClock clock
 	testClock.pos = 1
 
+	Server.crdt_validation(c1, atext.crdts)
 	//fmt.Println(crdt_compare(c6, c4))
 
 	// var c11 crdt
