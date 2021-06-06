@@ -9,6 +9,8 @@
 <textarea id="txt" style="resize:none;width:600px;height:200px;"></textarea>
 <input type="button" value="???" name="btn" onclick="check_send_diff()" />
 <script language="javascript">
+    var IP = "client1"
+    var crdts = []
     var version = 0;
     // function c1()
     // {
@@ -281,8 +283,6 @@
 
 
 
-
-
     
     var c1 = {pos:1, IP:"A"}
     var c2 = {pos:1, IP:"A"}
@@ -294,6 +294,44 @@
 
     generate_crdt("1", arr)
     show(arr)
+
+    function generate_difference_crdt() {
+        var temp_value = document.getElementById('txt').value
+        var return_crdt = generate_crdt(temp_value, crdts,IP)
+        put_command(crdts, return_crdt)
+        jQuery.support.cors = true;
+        // encode return_crdt and send it
+        $.ajax({
+            type: "get",
+            url: "http://localhost:8080/?content=" + document.getElementById('txt').value,
+            data: {},
+            success: function (data, status) {
+                if (status == "success") {
+                    console.log("Send!")
+
+                }
+            },
+            error: function (e) {
+                console.log("Send failure!");
+            },
+            complete: function () {
+
+            }
+        });
+
+    }
+
+    function get_update() {
+        var temp_value = document.getElementById('txt').value
+        var return_crdt = generate_crdt(temp_value, crdts,IP)
+        var receive_crdts = []
+        for (var i=0; i<crdts.length; i++){
+            put_command(crdts, return_crdts[i])
+        }
+    }
+
+    document.getElementById('txt').addEventListener("input", generate_difference_crdt, false);
+    setInterval(get_update, 1000)
     
     
 </script>
