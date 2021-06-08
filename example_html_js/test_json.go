@@ -2,12 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 )
 
-
 type clock struct {
-	Pos int `json:"Pos"`
+	Pos int    `json:"Pos"`
 	IP  string `json:"IP"`
 }
 
@@ -16,6 +16,10 @@ type crdt struct {
 	Id        []clock
 	Timestamp string
 	Operation bool
+}
+
+func test(input []int) {
+	input[0] = 3
 }
 
 func main() {
@@ -27,7 +31,7 @@ func main() {
 	t2.IP = "ip2"
 	t2.Pos = 2
 
-	c:=[]clock{}
+	c := []clock{}
 	c = append(c, t1)
 	c = append(c, t2)
 
@@ -48,9 +52,15 @@ func main() {
 	crdts = append(crdts, crdt1)
 	crdts = append(crdts, crdt2)
 
-	b,_ := json.Marshal(&crdts)
-	log.Println(string(b))
-	ori:=[]crdt{}
-	json.Unmarshal(b,&ori)
+	b, _ := json.Marshal(&crdts)
+	//log.Println(string(b))
+	ori := []crdt{}
+	json.Unmarshal(b, &ori)
 	log.Println(ori)
+
+	var arr = []int{1, 2, 3}
+	//arr := [1,2,3]
+	test(arr)
+	fmt.Println(arr)
+
 }
