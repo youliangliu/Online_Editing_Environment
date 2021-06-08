@@ -96,6 +96,16 @@
         }
     }
 
+    function crdts_to_string(crdts){
+        var result = ""
+        for (var i=0; i<crdts.length; i++){
+            if (crdts[i].operation == true){
+                result.push(crdts[i].value)
+            }   
+        }
+        return result
+    }
+
     //Compare the clock
     function clock_compare(c1, c2){
         if (c1.pos < c2.pos) {

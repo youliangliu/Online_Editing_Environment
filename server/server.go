@@ -267,7 +267,8 @@ func http_serve_crdts(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	http.HandleFunc("/", http_serve)
+	http.HandleFunc("/http_serve_crdt", http_serve_crdt)
+	http.HandleFunc("/http_serve_crdts", http_serve_crdts)
 
 	fmt.Printf("Starting server for testing HTTP POST...\n")
 	if err := http.ListenAndServe(":8080", nil); err != nil {
