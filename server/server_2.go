@@ -34,7 +34,6 @@ func (self *Server) Broadcast(command crdt, ret *bool) error {
 		if i != self.index {
 			conn, e := rpc.DialHTTP("tcp", self.backends[i])
 			if e != nil {
-				log.Println("Test Error:", e)
 				continue
 			}
 
@@ -44,7 +43,6 @@ func (self *Server) Broadcast(command crdt, ret *bool) error {
 				conn.Close()
 				continue
 			}
-			log.Println("Error:", e)
 		}
 	}
 	return nil
@@ -299,7 +297,7 @@ func test_parser_array(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	myserver.backends = []string{"localhost:8080","localhost:31267"}
-	myserver.index = 0
+	myserver.index = 1
 
 	http.HandleFunc("/send", http_serve_crdt)
 	http.HandleFunc("/update", http_serve_crdts)
@@ -308,7 +306,7 @@ func main() {
 	//http.HandleFunc("/update", test_parser_array)
 
 	fmt.Printf("Starting server...\n")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	if err := http.ListenAndServe(":31267", nil); err != nil {
 		log.Fatal(err)
 	}
 }

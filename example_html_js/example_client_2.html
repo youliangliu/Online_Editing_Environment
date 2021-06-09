@@ -9,7 +9,8 @@
 <textarea id="txt" style="resize:none;width:600px;height:200px;"></textarea>
 <input type="button" value="update" name="btn" onclick="get_update()" />
 <script language="javascript">
-    var IP = "client1"
+    var IP = "client2"
+    //var ServerIP = "localhost:31267"
     var ServerIP = "localhost:8080"
     var crdts = []
     var version = 0;
@@ -102,7 +103,7 @@
         for (var i=0; i<crdts.length; i++){
             if (crdts[i].operation == true){
                 result = result+crdts[i].value
-            }   
+            }
         }
         return result
     }
@@ -110,21 +111,21 @@
     //Compare the clock
     function clock_compare(c1, c2){
         if (c1.pos < c2.pos) {
-		    return -1
-	    }    
+            return -1
+        }
         else if (c1.pos > c2.pos) {
-		    return 1
-	    } 
+            return 1
+        }
         else {
-		    if (c1.IP < c2.IP) {
-			    return -1
-		    } 
+            if (c1.IP < c2.IP) {
+                return -1
+            }
             else if (c1.IP > c2.IP) {
-			    return 1
-		    } else {
-			    return 0
-		    }
-	    }
+                return 1
+            } else {
+                return 0
+            }
+        }
     }
 
     //Compare Crdt
@@ -240,7 +241,7 @@
     }
 
     //crtds is an array with all the original crdts, crdt is
-    //the one that we are adding into the crdts array. 
+    //the one that we are adding into the crdts array.
     function put_command(crdts, crdt){
         if (crdt.operation == true) {
             var flag = true
@@ -298,7 +299,7 @@
 
 
 
-    
+
     var c1 = {pos:1, IP:"A"}
     var c2 = {pos:1, IP:"A"}
     console.log("compared clock: ", clock_compare(c1, c2))
@@ -375,8 +376,8 @@
 
     document.getElementById('txt').addEventListener("input", generate_difference_crdt, false);
     setInterval(get_update, 1000)
-    
-    
+
+
 </script>
 
 
