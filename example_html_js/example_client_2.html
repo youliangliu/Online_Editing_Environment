@@ -9,9 +9,10 @@
 <textarea id="txt" style="resize:none;width:600px;height:200px;"></textarea>
 <input type="button" value="update" name="btn" onclick="get_update()" />
 <script language="javascript">
-    var IP = "client2"
-    //var ServerIP = "localhost:31267"
-    var ServerIP = "localhost:8080"
+    var IP = "client1"
+    var IP_list = ["localhost:8080","localhost:31267"]
+    var IP_index = 1
+    var ServerIP = IP_list[IP_index]
     var crdts = []
     var version = 0;
     // function c1()
@@ -354,6 +355,10 @@
                 // }
                 //console.log("receive: "+data)
                 console.log("Update:", data)
+                if (data == "Disconnect") {
+                    document.getElementById('txt').value = "Disconnected, refresh pages!"
+                    return
+                }
                 receive_crdts = JSON.parse(data)
                 console.log(receive_crdts)
                 if (receive_crdts != null) {
@@ -367,6 +372,7 @@
             },
             error: function (e) {
                 console.log("receive failure!");
+                document.getElementById('txt').value = "Disconnected, refrech pages!"
             },
             complete: function () {
 
@@ -374,8 +380,62 @@
         });
     }
 
+
+    // var connected = false
+    // var finding_connected = false
+    // var initial_index = IP_index
+    // var failed = false
+    //
+    // for(;failed == false || connected == false; ) {
+    //     if (finding_connected == true) {
+    //         continue
+    //     }
+    //     console.log("launch https")
+    //     finding_connected = true
+    //     ServerIP = IP_list[IP_index]
+    //     jQuery.support.cors = true;
+    //     $.ajax({
+    //         type: "get",
+    //         url: "http://" + ServerIP + "/update?content=" + JSON.stringify(crdts),
+    //         data: {},
+    //         success: function (data, status) {
+    //             console.log("Update:", data)
+    //             if (data == "Disconnect") {
+    //                 console.log("Server not in Quorum")
+    //                 IP_index = (IP_index+1)%IP_list.length
+    //                 if(IP_index == initial_index){
+    //                     document.getElementById('txt').value = "Cannot connect to servers!"
+    //                     failed = true
+    //                 }
+    //                 finding_connected = false
+    //             } else {
+    //                 failed = false
+    //                 connected = true
+    //                 finding_connected = false
+    //                 console.log("Connect")
+    //             }
+    //         },
+    //         error: function (e) {
+    //             console.log("Server not available")
+    //             IP_index = (IP_index+1)%IP_list.length
+    //             if(IP_index == initial_index){
+    //                 document.getElementById('txt').value = "Cannot connect to servers!"
+    //                 failed = true
+    //             }
+    //             finding_connected = false
+    //         },
+    //         complete: function () {
+    //             finding_connected = false
+    //         }
+    //     });
+    // }
+    // if (failed == false) {
+    //     document.getElementById('txt').addEventListener("input", generate_difference_crdt, false);
+    //     setInterval(get_update, 100)
+    // }
+
     document.getElementById('txt').addEventListener("input", generate_difference_crdt, false);
-    setInterval(get_update, 1000)
+    setInterval(get_update, 300)
 
 
 </script>

@@ -2,39 +2,72 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"net/rpc"
+	"sync"
+	"time"
 )
-
-type clock struct {
+type CrdtArray struct{
+	Crdts []Crdt
+}
+type Clock struct {
 	Pos int    `json:"pos"`
 	IP  string `json:"IP"`
 }
 
-type crdt struct {
+type Crdt struct {
 	Value     string `json:"value"`
-	Id        []clock `json:"id"`
+	Id        []Clock `json:"id"`
 	Timestamp string `json:"timestamp"`
 	Operation bool `json:"operation"`
 }
 
 type Server struct {
-	crdts    []crdt
+	crdts    []Crdt
 	backends []string
 	index    int
+	server_num int
+	last_communicate_time []int64
+	last_connect_time []int64
+	last_try_connect int64
+	connected bool
+	crdt_lock *sync.Mutex
 }
 
 var myserver Server
 
-func (self *Server) Broadcast(command crdt, ret *bool) error {
+func (self* Server) sync_crdts(index int) error {
+	myserver.last_communicate_time[index] = time.Now().UnixNano()
+	if index == myserver.index {
+		return nil
+	}
+	conn, e := rpc.DialHTTP("tcp", self.backends[index])
+	if e != nil {
+		return e
+	}
+
+	// perform the call
+	var returned_crdts CrdtArray
+	e = conn.Call("Server.CrdtsSync", self.crdts, &returned_crdts)
+	if e != nil {
+		conn.Close()
+		log.Println("Sync Error:", e)
+		return e
+	}
+	myserver.last_connect_time[index] = time.Now().UnixNano()
+	return nil
+}
+
+func (self *Server) Broadcast(command Crdt, ret *bool) error {
 	self.PutCommand(command, ret)
+	quorum_count:=0
 	for i := 0; i < len(self.backends); i++ {
 		if i != self.index {
 			conn, e := rpc.DialHTTP("tcp", self.backends[i])
 			if e != nil {
-				log.Println("Test Error:", e)
 				continue
 			}
 
@@ -44,13 +77,21 @@ func (self *Server) Broadcast(command crdt, ret *bool) error {
 				conn.Close()
 				continue
 			}
-			log.Println("Error:", e)
+			myserver.last_connect_time[i] = time.Now().UnixNano()
+			quorum_count++
 		}
 	}
-	return nil
+	if quorum_count<myserver.server_num/2 {
+		myserver.connected = false
+		return errors.New("Disconnected!")
+	} else{
+		myserver.connected = true
+		return nil
+	}
 }
 
-func (self *Server) PutCommand(command crdt, ret *bool) error {
+func (self *Server) PutCommand(command Crdt, ret *bool) error {
+	myserver.crdt_lock.Lock()
 	if command.Operation == true {
 		flag := true
 		for i := 0; i < len(self.crdts); i++ {
@@ -62,7 +103,7 @@ func (self *Server) PutCommand(command crdt, ret *bool) error {
 				}
 				if command.Timestamp < self.crdts[i].Timestamp {
 					first := self.crdts[:i]
-					last := []crdt{}
+					last := []Crdt{}
 					last = append(last, self.crdts[i:]...)
 					self.crdts = append(first, command)
 					self.crdts = append(self.crdts, last...)
@@ -71,7 +112,7 @@ func (self *Server) PutCommand(command crdt, ret *bool) error {
 				}
 			} else if result > 0 {
 				first := self.crdts[:i]
-				last := []crdt{}
+				last := []Crdt{}
 				last = append(last, self.crdts[i:]...)
 				self.crdts = append(first, command)
 				self.crdts = append(self.crdts, last...)
@@ -95,7 +136,7 @@ func (self *Server) PutCommand(command crdt, ret *bool) error {
 				}
 				if command.Timestamp < self.crdts[i].Timestamp {
 					first := self.crdts[:i]
-					last := []crdt{}
+					last := []Crdt{}
 					last = append(last, self.crdts[i:]...)
 					self.crdts = append(first, command)
 					self.crdts = append(self.crdts, last...)
@@ -104,7 +145,7 @@ func (self *Server) PutCommand(command crdt, ret *bool) error {
 				}
 			} else if result > 0 {
 				first := self.crdts[:i]
-				last := []crdt{}
+				last := []Crdt{}
 				last = append(last, self.crdts[i:]...)
 				self.crdts = append(first, command)
 				self.crdts = append(self.crdts, last...)
@@ -116,10 +157,30 @@ func (self *Server) PutCommand(command crdt, ret *bool) error {
 			self.crdts = append(self.crdts, command)
 		}
 	}
-
+	myserver.crdt_lock.Unlock()
 	return nil
 }
 
+func (self *Server) try_connect() bool {
+	myserver.last_try_connect = time.Now().UnixNano()
+	quorum_count:=0
+	for i := 0; i < len(self.backends); i++ {
+		if i != self.index {
+			_, e := rpc.DialHTTP("tcp", self.backends[i])
+			if e != nil {
+				continue
+			}
+			quorum_count++
+		}
+	}
+	if quorum_count<myserver.server_num/2 {
+		myserver.connected = false
+		return false
+	} else{
+		myserver.connected = true
+		return true
+	}
+}
 func (self *Server) show() error {
 	result := ""
 	for i := 0; i < len(self.crdts); i++ {
@@ -131,7 +192,7 @@ func (self *Server) show() error {
 	return nil
 }
 
-func clock_compare(c1 clock, c2 clock) int {
+func clock_compare(c1 Clock, c2 Clock) int {
 	if c1.Pos < c2.Pos {
 		return -1
 	} else if c1.Pos > c2.Pos {
@@ -147,7 +208,7 @@ func clock_compare(c1 clock, c2 clock) int {
 	}
 }
 
-func crdt_compare(c1 crdt, c2 crdt) int {
+func crdt_compare(c1 Crdt, c2 Crdt) int {
 	var compareLength int
 	//compareLength = len(c1.clock) < len(c2.clock) ? len(c1.clock) : len(c2.clock)
 	if len(c1.Id) <= len(c2.Id) {
@@ -172,8 +233,8 @@ func crdt_compare(c1 crdt, c2 crdt) int {
 	}
 }
 
-func (self *Server) crdts_difference(clientCrdts []crdt) []crdt {
-	var result []crdt
+func (self *Server) crdts_difference(clientCrdts []Crdt) []Crdt {
+	var result []Crdt
 	for i := 0; i < len(self.crdts); i++ {
 		if crdt_valIdation(self.crdts[i], clientCrdts) == true {
 			result = append(result, self.crdts[i])
@@ -182,7 +243,31 @@ func (self *Server) crdts_difference(clientCrdts []crdt) []crdt {
 	return result
 }
 
-func crdt_valIdation(command crdt, crdts []crdt) bool {
+func (self *Server) CrdtsSync(clientCrdts []Crdt, returned_crdts *CrdtArray) error {
+	returned_crdts.Crdts = []Crdt{}
+
+	for i := 0; i < len(self.crdts); i++ {
+		if crdt_valIdation(self.crdts[i], clientCrdts) == true {
+			returned_crdts.Crdts = append(returned_crdts.Crdts, self.crdts[i])
+		}
+	}
+
+	var append_list []Crdt
+	for i := 0; i < len(clientCrdts); i++ {
+		if crdt_valIdation(clientCrdts[i], self.crdts) == true {
+			append_list = append(append_list, clientCrdts[i])
+		}
+	}
+
+	var ret bool
+	for i := 0; i < len(append_list); i++ {
+		self.PutCommand(append_list[i], &ret)
+	}
+
+	return nil
+}
+
+func crdt_valIdation(command Crdt, crdts []Crdt) bool {
 	for i := 0; i < len(crdts); i++ {
 		result := crdt_compare(crdts[i], command)
 		if result == 0 {
@@ -198,25 +283,29 @@ func crdt_valIdation(command crdt, crdts []crdt) bool {
 	return true
 }
 
-func parse_string_to_crdts(b []byte) []crdt {
-	ori := []crdt{}
+func parse_string_to_crdts(b []byte) []Crdt {
+	ori := []Crdt{}
 	json.Unmarshal(b, &ori)
 	return ori
 }
 
-func parse_string_to_crdt(b []byte) crdt {
-	var ori crdt
+func parse_string_to_crdt(b []byte) Crdt {
+	var ori Crdt
 	json.Unmarshal(b, &ori)
 	log.Println(string(b))
 	return ori
 }
 
-func parse_crdts_to_string(crdts []crdt) []byte {
+func parse_crdts_to_string(crdts []Crdt) []byte {
 	b, _ := json.Marshal(crdts)
 	return b
 }
 
-func http_serve_crdt(w http.ResponseWriter, r *http.Request) {
+func client_put_crdt(w http.ResponseWriter, r *http.Request) {
+	if myserver.connected==false {
+		w.Write([]byte("Disconnect"))
+		return
+	}
 	// Call ParseForm() to parse the raw query and update r.PostForm and r.Form.
 	if err := r.ParseForm(); err != nil {
 		fmt.Fprintf(w, "ParseForm() err: %v", err)
@@ -235,8 +324,12 @@ func http_serve_crdt(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func http_serve_crdts(w http.ResponseWriter, r *http.Request) {
-	// Call ParseForm() to parse the raw query and update r.PostForm and r.Form.
+func client_update(w http.ResponseWriter, r *http.Request) {
+	if myserver.connected==false {
+		log.Println("Reject client", myserver.connected)
+		w.Write([]byte("Disconnect"))
+		return
+	}
 	if err := r.ParseForm(); err != nil {
 		fmt.Fprintf(w, "ParseForm() err: %v", err)
 		return
@@ -247,7 +340,7 @@ func http_serve_crdts(w http.ResponseWriter, r *http.Request) {
 		//if it is a crdt array
 		crdts := parse_string_to_crdts([]byte(r.FormValue("content")))
 		log.Println("Receive update:", crdts)
-		var returned_crdts []crdt
+		var returned_crdts []Crdt
 		returned_crdts = myserver.crdts_difference(crdts)
 		var returned_string []byte
 		returned_string = parse_crdts_to_string(returned_crdts)
@@ -260,7 +353,6 @@ func http_serve_crdts(w http.ResponseWriter, r *http.Request) {
 
 
 func test_parser(w http.ResponseWriter, r *http.Request) {
-	// Call ParseForm() to parse the raw query and update r.PostForm and r.Form.
 	if err := r.ParseForm(); err != nil {
 		fmt.Fprintf(w, "ParseForm() err: %v", err)
 		return
@@ -278,7 +370,6 @@ func test_parser(w http.ResponseWriter, r *http.Request) {
 }
 
 func test_parser_array(w http.ResponseWriter, r *http.Request) {
-	// Call ParseForm() to parse the raw query and update r.PostForm and r.Form.
 	if err := r.ParseForm(); err != nil {
 		fmt.Fprintf(w, "ParseForm() err: %v", err)
 		return
@@ -298,19 +389,69 @@ func test_parser_array(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	myserver.backends = []string{"localhost:8080","localhost:31267"}
+	var communicate_interval int64
+	var try_interval int64
+	var connect_interval int64
+	port_list := []string{"8080","31267"}
+	communicate_interval = 2000000000
+	try_interval = 2000000000
+	connect_interval = 6000000000
+	myserver.server_num = len(port_list)
 	myserver.index = 0
+	myserver.backends = []string{}
+	for i:=0;i!=myserver.server_num;i++ {
+		myserver.backends = append(myserver.backends, "localhost:"+port_list[i])
+	}
+	myserver.connected = false
+	myserver.crdt_lock = &sync.Mutex{}
+	myserver.last_try_connect = time.Now().UnixNano()
+	myserver.last_communicate_time = []int64{}
+	for i:=0;i< len(myserver.backends);i++{
+		myserver.last_communicate_time = append(myserver.last_communicate_time, int64(0))
+		myserver.last_connect_time = append(myserver.last_connect_time, int64(0))
+	}
 
-	http.HandleFunc("/send", http_serve_crdt)
-	http.HandleFunc("/update", http_serve_crdts)
+
+
+	http.HandleFunc("/send", client_put_crdt)
+	http.HandleFunc("/update", client_update)
 
 	//http.HandleFunc("/send", test_parser)
 	//http.HandleFunc("/update", test_parser_array)
+	rpc.Register(&myserver)
+	rpc.HandleHTTP()
 
 	fmt.Printf("Starting server...\n")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
-		log.Fatal(err)
+	go func() {
+		if err := http.ListenAndServe(":"+port_list[myserver.index], nil); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	for ;; {
+		time.Sleep(time.Duration(300)*time.Millisecond)
+		current_time := time.Now().UnixNano()
+		if myserver.connected == false && current_time>myserver.last_try_connect+try_interval{
+			myserver.try_connect()
+		}
+		for i:= 0; i<myserver.server_num;i++ {
+			if current_time>myserver.last_communicate_time[i]+communicate_interval{
+				myserver.sync_crdts(i)
+			}
+		}
+		quorum_count:=0
+		for i:= 0; i<myserver.server_num;i++ {
+			if current_time<myserver.last_connect_time[i]+connect_interval && i!=myserver.index{
+				quorum_count++
+			}
+		}
+		if quorum_count < myserver.server_num/2 {
+			myserver.connected = false
+		} else {
+			myserver.connected = true
+		}
 	}
+
 }
 
 /*
