@@ -1,0 +1,22 @@
+1. Run the following command line to open a Chrome with a disable web security setting 
+
+open -n -a /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --args --user-data-dir="/tmp/chrome_dev_test" --disable-web-security
+
+
+2. How to start the server: Go to the server folder, and type the following command line:
+
+go run server.go
+go run server_2.go
+
+So that we started two servers. 
+
+3. Drag the two html file under the example_html_js folder into the browser. Then you can try the GUI for fun!
+
+4. How to configure more server and clients:
+    1. For server, copy the server.go file to a new file with another name, modify line 398 and 403. For line 398 add 
+       another port number into the string list. For line 403, specify myserver.index to the index of that that server's
+       port number in the line 398 list. 
+    2. For client, make a copy of the example_client.html file, modify the line in line 12, 13, and 14. For line 12, give 
+       that client a universally unique name, for line 13, append that server's address into the address array. For line 14
+       specify the index of the server that you want to connect to. 
+
