@@ -20,3 +20,7 @@ So that we started two servers.
        that client a universally unique name, for line 13, append that server's address into the address array. For line 14
        specify the index of the server that you want to connect to. 
 
+For our original design, if the server died we would like the client to be able to find another server, but since we are 
+not very fimiliar with JavaScript, in our current implementation if our server died, the client won't be able to find another
+server by itself. 
+
