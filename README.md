@@ -6,6 +6,7 @@ open -n -a /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --args
 2. How to start the server: Go to the server folder, and type the following command line:
 
 go run server.go
+
 go run server_2.go
 
 So that we started two servers. 
