@@ -57,6 +57,7 @@ func (self* Server) sync_crdts(index int) error {
 		log.Println("Sync Error:", e)
 		return e
 	}
+	conn.Close()
 	myserver.last_connect_time[index] = time.Now().UnixNano()
 	return nil
 }
@@ -77,6 +78,7 @@ func (self *Server) Broadcast(command Crdt, ret *bool) error {
 				conn.Close()
 				continue
 			}
+			conn.Close()
 			myserver.last_connect_time[i] = time.Now().UnixNano()
 			quorum_count++
 		}
@@ -166,11 +168,12 @@ func (self *Server) try_connect() bool {
 	quorum_count:=0
 	for i := 0; i < len(self.backends); i++ {
 		if i != self.index {
-			_, e := rpc.DialHTTP("tcp", self.backends[i])
+			conn, e := rpc.DialHTTP("tcp", self.backends[i])
 			if e != nil {
 				continue
 			}
 			quorum_count++
+			conn.Close()
 		}
 	}
 	if quorum_count<myserver.server_num/2 {

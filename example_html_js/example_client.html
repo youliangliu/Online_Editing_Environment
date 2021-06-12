@@ -86,11 +86,11 @@
 
 
     function generate_time(){
-        var today = new Date();
-        var date = today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate();
-        var time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
-        var dateTime = date+' '+time;
-        return dateTime
+        // var today = new Date();
+        // var date = today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate();
+        // var time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
+        // var dateTime = date+' '+time;
+        return String(Date.now())
     }
 
     function show(crdts){
@@ -154,7 +154,8 @@
     function generate_id_middle(prev, next, IP){
         var length = Math.min(prev.length, next.length)
         var pos = -1
-        for (var i=0; i<length-1; i++){
+        //for (var i=0; i<length-1; i++){
+        for (var i=0; i<length; i++){
             if (clock_compare(prev[i], next[i]) != 0){
                 pos = i
                 break
@@ -162,7 +163,8 @@
         }
         if(pos == -1){
             var id = prev.slice()
-            var clock = {pos:next[pos+1].pos-1, IP:IP}
+            //var clock = {pos:next[pos+1].pos-1, IP:IP}
+            var clock = {pos:next[length].pos-1, IP:IP}
             id.push(clock)
             return id
         }
@@ -349,6 +351,7 @@
             url: "http://"+ServerIP+"/update?content="+JSON.stringify(crdts),
             data: {},
             success: function (data, status) {
+                var current_time = Date.now()
                 // var receive_crdts = []
                 // for (var i=0; i<receive_crdts.length; i++){
                 //     put_command(crdts, return_crdts[i])
@@ -361,11 +364,16 @@
                 }
                 receive_crdts = JSON.parse(data)
                 console.log(receive_crdts)
+
                 if (receive_crdts != null) {
                     for (var i = 0; i < receive_crdts.length; i++) {
+                        console.log(receive_crdts[i])
+                        console.log(receive_crdts[i].timestamp)
+                        console.log(current_time)
+                        console.log("Difference: ", current_time-receive_crdts[i].timestamp)
                         put_command(crdts, receive_crdts[i])
                     }
-                    console.log("Received Update:" + crdts_to_string(receive_crdts))
+                    //console.log("Received Update:" + crdts_to_string(receive_crdts))
                 }
                 new_string = crdts_to_string(crdts)
                 document.getElementById('txt').value = new_string
