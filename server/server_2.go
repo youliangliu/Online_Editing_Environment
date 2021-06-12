@@ -63,7 +63,6 @@ func (self* Server) sync_crdts(index int) error {
 }
 
 func (self *Server) Broadcast(command Crdt, ret *bool) error {
-	self.PutCommand(command, ret)
 	quorum_count:=0
 	for i := 0; i < len(self.backends); i++ {
 		if i != self.index {
@@ -87,6 +86,7 @@ func (self *Server) Broadcast(command Crdt, ret *bool) error {
 		myserver.connected = false
 		return errors.New("Disconnected!")
 	} else{
+		self.PutCommand(command, ret)
 		myserver.connected = true
 		return nil
 	}
