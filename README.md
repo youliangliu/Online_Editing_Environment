@@ -14,7 +14,7 @@ So that we started two servers.
 
 4. How to configure more server and clients:
     1. For server, copy the server.go file to a new file with another name, modify line 398 and 403. For line 398 add 
-       another port number into the string list. For line 403, specify myserver.index to the index of that that server's
+       another port number into the string list. For line 403, specify myserver.index to the index of that server's
        port number in the line 398 list. 
     2. For client, make a copy of the example_client.html file, modify the line in line 12, 13, and 14. For line 12, give 
        that client a universally unique name, for line 13, append that server's address into the address array. For line 14
